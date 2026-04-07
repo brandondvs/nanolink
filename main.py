@@ -58,6 +58,20 @@ async def get_link(slug: str, debug: bool = False):
         return link
 
 
+@app.get("/metrics/{slug}")
+async def get_metrics(slug: str):
+    with Session(engine) as session:
+        link = session.exec(select(Link).where(Link.code == slug)).first()
+        if not link:
+            raise HTTPException(status_code=404, detail="Link not found")
+        return {
+            "code": link.code,
+            "url": link.url,
+            "total_clicks": len(link.events),
+            "events": link.events,
+        }
+
+
 @app.delete("/delete/{slug}")
 async def delete_link(slug: str):
     with Session(engine) as session:
