@@ -57,3 +57,14 @@ async def get_link(slug: str, debug: bool = False):
             raise HTTPException(status_code=404, detail="Link not found")
 
         return link
+
+
+@app.delete("/delete/{slug}")
+async def delete_link(slug: str):
+    with Session(engine) as session:
+        link = session.exec(select(Link).where(Link.code == slug)).first()
+        if not link:
+            raise HTTPException(status_code=404, detail="Link not found")
+        session.delete(link)
+        session.commit()
+        return {"deleted": slug}
