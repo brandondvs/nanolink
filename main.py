@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl
 from pydantic_settings import BaseSettings
 from sqlmodel import SQLModel, create_engine, Session, select
 
-from model import Link
+from model import Link, LinkEvent
 
 app = FastAPI()
 
@@ -52,6 +52,9 @@ async def get_link(slug: str, debug: bool = False):
         if not link:
             raise HTTPException(status_code=404, detail="Link not found")
 
+        session.add(LinkEvent(link_id=link.id))
+        session.commit()
+        session.refresh(link)
         return link
 
 
