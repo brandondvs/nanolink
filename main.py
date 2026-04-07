@@ -3,7 +3,9 @@ import random, string
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, HttpUrl
 from pydantic_settings import BaseSettings
-from sqlmodel import SQLModel, Field, create_engine, Session, select
+from sqlmodel import SQLModel, create_engine, Session, select
+
+from model import Link
 
 app = FastAPI()
 
@@ -18,12 +20,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 engine = create_engine(settings.database_url, echo=True)
-
-
-class Link(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    url: str
-    code: str = Field(index=True, unique=True)
 
 
 class CreateLink(BaseModel):
