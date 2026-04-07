@@ -1,0 +1,15 @@
+services:
+  db:
+    build: .
+    container_name: nanolink-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: nanolink
+      POSTGRES_PASSWORD: nanolink
+      POSTGRES_DB: nanolink
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
