@@ -1,6 +1,7 @@
 import random, string
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
 from pydantic_settings import BaseSettings
 from sqlmodel import SQLModel, create_engine, Session, select
@@ -12,6 +13,7 @@ app = FastAPI()
 
 class Settings(BaseSettings):
     database_url: str = ""
+    debug: bool = False
 
     class Config:
         env_file = ".env"
@@ -19,11 +21,11 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-engine = create_engine(settings.database_url, echo=True)
+engine = create_engine(settings.database_url, echo=settings.debug)
 
 
 class CreateLink(BaseModel):
-    data: HttpUrl
+    url: HttpUrl
 
 
 SQLModel.metadata.create_all(engine)
@@ -35,13 +37,18 @@ def generate_code(length=6) -> str:
 
 
 @app.post("/create")
-async def create_link(createLink: CreateLink):
-    code = generate_code()
-    link = Link(url=str(createLink.data), code=code)
+async def create_link(create_link: CreateLink):
     with Session(engine) as session:
+        while True:
+            code = generate_code()
+            existing = session.exec(select(Link).where(Link.code == code)).first()
+            if not existing:
+                break
+
+        link = Link(url=str(create_link.url), code=code)
         session.add(link)
         session.commit()
-    return {"code": code}
+        return {"code": code, "link": link.url}
 
 
 @app.get("/{slug}")
@@ -55,7 +62,11 @@ async def get_link(slug: str, debug: bool = False):
         session.add(LinkEvent(link_id=link.id))
         session.commit()
         session.refresh(link)
-        return link
+
+        if debug:
+            return {"link": link.url, "redirect": False, "debug": debug}
+
+        return RedirectResponse(url=link.url, status_code=307)
 
 
 @app.get("/metrics/{slug}")
