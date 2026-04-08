@@ -8,10 +8,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
 from sqlmodel import SQLModel, create_engine, Session, select
-
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
-
+Instrumentator().instrument(app).expose(app)
 
 config = Config()
 

@@ -1,6 +1,6 @@
 services:
   db:
-    build: .
+    image: postgres:18.3
     container_name: nanolink-db
     ports:
       - "5432:5432"
@@ -11,5 +11,59 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
+  prometheus:
+    image: prom/prometheus:v3.11.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+
+  grafana:
+    image: grafana/grafana:12.4
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    depends_on:
+      - prometheus
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.19.1
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://nanolink:nanolink@db:5432/nanolink?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - db
+
+  node-exporter:
+    image: prom/node-exporter:v1.11.1
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.56.2
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
