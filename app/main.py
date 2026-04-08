@@ -1,27 +1,21 @@
 import random, string
 
+
+from app.database.model import Link, LinkEvent
+from app.settings import Config
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
-from pydantic_settings import BaseSettings
 from sqlmodel import SQLModel, create_engine, Session, select
 
-from model import Link, LinkEvent
 
 app = FastAPI()
 
 
-class Settings(BaseSettings):
-    database_url: str = ""
-    debug: bool = False
+config = Config()
 
-    class Config:
-        env_file = ".env"
-
-
-settings = Settings()
-
-engine = create_engine(settings.database_url, echo=settings.debug)
+engine = create_engine(config.database_url, echo=config.debug)
 
 
 class CreateLink(BaseModel):
