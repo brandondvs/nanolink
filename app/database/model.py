@@ -7,6 +7,7 @@ class Link(SQLModel, table=True):
     url: str
     code: str = Field(index=True, unique=True)
     events: list["LinkEvent"] = Relationship(back_populates="link", cascade_delete=True)
+    expires_at: datetime
 
 
 class LinkEvent(SQLModel, table=True):

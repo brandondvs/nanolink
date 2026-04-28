@@ -1,5 +1,5 @@
 import random, string
-
+from datetime import datetime, timezone
 
 from app.database.model import Link, LinkEvent
 from app.settings import Config
@@ -20,6 +20,7 @@ engine = create_engine(config.database_url, echo=config.debug)
 
 class CreateLink(BaseModel):
     url: HttpUrl
+    expires_at: datetime
 
 
 SQLModel.metadata.create_all(engine)
@@ -39,10 +40,12 @@ async def create_link(create_link: CreateLink):
             if not existing:
                 break
 
-        link = Link(url=str(create_link.url), code=code)
+        link = Link(
+            url=str(create_link.url), code=code, expires_at=create_link.expires_at
+        )
         session.add(link)
         session.commit()
-        return {"code": code, "link": link.url}
+        return {"code": code, "link": link.url, "expires_at": link.expires_at}
 
 
 @app.get("/{slug}")
@@ -52,6 +55,9 @@ async def get_link(slug: str, debug: bool = False):
         link = session.exec(statement).first()
         if not link:
             raise HTTPException(status_code=404, detail="Link not found")
+
+        if link.expires_at <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=410, detail="Link expired")
 
         session.add(LinkEvent(link_id=link.id))
         session.commit()
@@ -74,6 +80,7 @@ async def get_metrics(slug: str):
             "url": link.url,
             "total_clicks": len(link.events),
             "events": link.events,
+            "expires_at": link.expires_at,
         }
 
 
